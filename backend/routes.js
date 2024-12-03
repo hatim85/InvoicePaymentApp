@@ -7,7 +7,7 @@ import Invoice from "./InvoicSchema.js";
 const router = express.Router();
 
 // Initialize ethers.js provider and wallet
-const provider = new ethers.JsonRpcProvider(ALCHEMY_API_KEY);
+const provider = new ethers.JsonRpcProvider(`https://crossfi-testnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`);
 const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 
 // Create contract instance
@@ -16,62 +16,79 @@ const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
 /**
  * Route to create an invoice and generate a payment link with QR code
  */
+// Create an invoice and generate a payment link with a QR code
 router.post("/createInvoice", async (req, res) => {
     const { payer, amount, description, dueDate, items } = req.body;
 
     try {
+        console.log("Request received:", req.body);
+    
         if (!payer || !amount || !description || !dueDate || !items) {
+            console.log("Missing required fields");
             return res.status(400).json({ message: "Missing required fields" });
         }
-
-        // Validate Ethereum address
+    
+        console.log("Validating Ethereum address:", payer);
         if (!ethers.isAddress(payer)) {
+            console.log("Invalid payer address:", payer);
             return res.status(400).json({ message: "Invalid payer address" });
         }
+    
+        console.log("Converting amount to Wei:", amount);
+        const amountInWei = ethers.parseUnits(amount.toString(), "ether");
+        console.log("Amount in Wei:", amountInWei.toString());
+    
+        console.log("Interacting with smart contract to create invoice...");
+        const tx = await contract.createInvoice(payer, amountInWei, description, dueDate);
+        console.log("Transaction sent, waiting for receipt...");
+    
+        const receipt = await tx.wait();
+        console.log("Transaction receipt:", receipt);
+    
+        if (receipt.events && receipt.events.length > 0) {
+            const invoiceId = receipt.events[0].args.invoiceId.toString();
+            console.log("Invoice created",invoiceId);
 
-        console.log("before tx")
-        // Interact with the contract to create an invoice
-        const tx = await contract.createInvoice(payer, ethers.parseUnits(amount, "ether"), description, dueDate);
-        const receipt = await tx.wait(); // Wait for transaction to be mined
+            const paymentUrl = `http://localhost:3000/payInvoice/${invoiceId}`;
+            console.log("Generated payment URL:", paymentUrl);
 
-        console.log(receipt.events[0])
-        // Extract the invoice ID from the receipt
-        const invoiceId = receipt.events[0].args.invoiceId.toString(); // Assuming the event returns invoiceId
+            const invoiceData = {
+                invoiceId,
+                payer,
+                issuer: wallet.address,
+                amount,
+                description,
+                dueDate,
+                items,
+                status: "Pending",
+                qrCodeContent: paymentUrl, // Include payment URL for QR code generation
+            };
+            console.log("Invoice data to be saved:", invoiceData);
 
-        // Create payment URL
-        const paymentUrl = `http://localhost:3000/payInvoice/${invoiceId}`;
+            const invoice = new Invoice(invoiceData);
+            await invoice.save();
+            console.log("Invoice saved to MongoDB");
 
-        // Save items and generate PDF
-        const invoiceData = {
-            invoiceId,
-            payer,
-            issuer: wallet.address,
-            amount,
-            description,
-            dueDate,
-            items,
-            status: "Pending",
-            qrCodeContent: paymentUrl, // Include payment URL for QR code generation
-        };
+            const pdfPath = `./invoices/${invoiceId}.pdf`;
+            console.log("Generating PDF for the invoice at:", pdfPath);
+            await generatePDF(invoiceData, pdfPath);
+            console.log("PDF generated successfully");
 
-        // Save to MongoDB
-        const invoice = new Invoice(invoiceData);
-        await invoice.save();
-
-        // Generate Invoice PDF
-        const pdfPath = `./invoices/${invoiceId}.pdf`;
-        await generatePDF(invoiceData, pdfPath);
-
-        res.status(201).json({
-            message: "Invoice created successfully",
-            invoiceId,
-            issuerPdfUrl: `http://localhost:3000/invoices/${invoiceId}.pdf`,
-        });
+            res.status(201).json({
+                message: "Invoice created successfully",
+                invoiceId,
+                issuerPdfUrl: `http://localhost:3000/invoices/${invoiceId}.pdf`,
+            });
+        } else {
+            console.log("Invoice creation failed, no events emitted");
+            return res.status(500).json({ message: "Invoice creation failed, no event emitted" });
+        }
     } catch (error) {
-        console.error(error);
+        console.error("Error occurred during invoice creation:", error);
         res.status(500).json({ message: "Failed to create invoice" });
     }
 });
+
 
 
 /**

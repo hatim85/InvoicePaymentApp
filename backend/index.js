@@ -1,7 +1,6 @@
 import express from "express";
-// import Web3 from "web3";
 import {ethers} from "ethers";
-import routes from "./routes.js"; // Import routes
+import routes from "./routes.js"; 
 import { ALCHEMY_API_KEY, PRIVATE_KEY } from "./utils/config.js";
 import cors from "cors";
 import connectDB from "./utils/connectDB.js";
