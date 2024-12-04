@@ -2,87 +2,72 @@ import express from "express";
 import { ethers } from "ethers"; // Import ethers.js
 import { CONTRACT_ABI, CONTRACT_ADDRESS, ALCHEMY_API_KEY, PRIVATE_KEY } from "./utils/config.js";
 import QRCode from "qrcode";
+import { generatePDF } from "./utils/generatePDF.js";
 import Invoice from "./InvoicSchema.js";
 
 const router = express.Router();
 
 // Initialize ethers.js provider and wallet
-const provider = new ethers.JsonRpcProvider(`https://crossfi-testnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`);
-const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+// const provider = new ethers.JsonRpcProvider(`https://crossfi-testnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`);
+// const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 
 // Create contract instance
-const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
+// const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
 
 /**
  * Route to create an invoice and generate a payment link with QR code
  */
 // Create an invoice and generate a payment link with a QR code
 router.post("/createInvoice", async (req, res) => {
-    const { payer, amount, description, dueDate, items } = req.body;
+    const { payer, amount, description, dueDate, items, invoiceId, issuerAddress } = req.body;
 
     try {
         console.log("Request received:", req.body);
-    
-        if (!payer || !amount || !description || !dueDate || !items) {
+
+        if (!payer || !amount || !description || !dueDate || !items || !invoiceId || !issuerAddress) {
             console.log("Missing required fields");
             return res.status(400).json({ message: "Missing required fields" });
         }
-    
+
         console.log("Validating Ethereum address:", payer);
-        if (!ethers.isAddress(payer)) {
+        if (!ethers.utils.isAddress(payer)) {
             console.log("Invalid payer address:", payer);
             return res.status(400).json({ message: "Invalid payer address" });
         }
-    
+
         console.log("Converting amount to Wei:", amount);
-        const amountInWei = ethers.parseUnits(amount.toString(), "ether");
+        const amountInWei = ethers.utils.parseUnits(amount.toString(), "ether");
         console.log("Amount in Wei:", amountInWei.toString());
-    
-        console.log("Interacting with smart contract to create invoice...");
-        const tx = await contract.createInvoice(payer, amountInWei, description, dueDate);
-        console.log("Transaction sent, waiting for receipt...");
-    
-        const receipt = await tx.wait();
-        console.log("Transaction receipt:", receipt);
-    
-        if (receipt.events && receipt.events.length > 0) {
-            const invoiceId = receipt.events[0].args.invoiceId.toString();
-            console.log("Invoice created",invoiceId);
 
-            const paymentUrl = `http://localhost:3000/payInvoice/${invoiceId}`;
-            console.log("Generated payment URL:", paymentUrl);
+        // Create invoice data object using the issuer address from frontend
+        const invoiceData = {
+            invoiceId,
+            payer,
+            issuer: issuerAddress, // Use issuerAddress received from frontend
+            amount,
+            description,
+            dueDate,
+            items,
+            status: "Pending",
+            qrCodeContent: `http://localhost:3000/payInvoice/${invoiceId}`, // URL for QR code
+        };
+        console.log("Invoice data to be saved:", invoiceData);
 
-            const invoiceData = {
-                invoiceId,
-                payer,
-                issuer: wallet.address,
-                amount,
-                description,
-                dueDate,
-                items,
-                status: "Pending",
-                qrCodeContent: paymentUrl, // Include payment URL for QR code generation
-            };
-            console.log("Invoice data to be saved:", invoiceData);
+        // Save the invoice to the database
+        const invoice = new Invoice(invoiceData);
+        await invoice.save();
+        console.log("Invoice saved to MongoDB");
 
-            const invoice = new Invoice(invoiceData);
-            await invoice.save();
-            console.log("Invoice saved to MongoDB");
+        const pdfPath = `./invoices/${invoiceId}.pdf`;
+        console.log("Generating PDF for the invoice at:", pdfPath);
+        await generatePDF(invoiceData, pdfPath);
+        console.log("PDF generated successfully");
 
-            const pdfPath = `./invoices/${invoiceId}.pdf`;
-            console.log("Generating PDF for the invoice at:", pdfPath);
-            await generatePDF(invoiceData, pdfPath);
-            console.log("PDF generated successfully");
-
-            res.status(201).json({
-                message: "Invoice created successfully",
-                invoiceId,
-                issuerPdfUrl: `http://localhost:3000/invoices/${invoiceId}.pdf`,
-            });
-        } else {
-            console.log("Invoice creation failed, no events emitted");
-            return res.status(500).json({ message: "Invoice creation failed, no event emitted" });
-        }
+        res.status(201).json({
+            message: "Invoice created successfully",
+            invoiceId,
+            issuerPdfUrl: `http://localhost:3000/invoices/${invoiceId}.pdf`,
+        });
     } catch (error) {
         console.error("Error occurred during invoice creation:", error);
         res.status(500).json({ message: "Failed to create invoice" });
@@ -91,12 +76,13 @@ router.post("/createInvoice", async (req, res) => {
 
 
 
+
 /**
  * Route to pay an invoice using invoice ID
  */
-router.post("/payInvoice", async (req, res) => {
+router.post("/updateInvoiceStatus", async (req, res) => {
     try {
-        const { invoiceId } = req.body;
+        const { invoiceId,transactionHash } = req.body;
 
         // Validate input
         if (!invoiceId) {
@@ -109,17 +95,9 @@ router.post("/payInvoice", async (req, res) => {
             return res.status(404).json({ success: false, error: "Invoice not found" });
         }
 
-        // Validate payment amount dynamically
-        const paymentAmountInWei = ethers.parseUnits(invoice.amount.toString(), "ether");
-
-        // Interact with the smart contract to pay the invoice
-        const tx = await contract.payInvoice(invoiceId, {
-            value: paymentAmountInWei
-        });
-        const receipt = await tx.wait();
-
         // Update invoice status and save
         invoice.status = "Paid";
+        invoice.transactionHash=transactionHash;
         invoice.datePaid = new Date();
         await invoice.save();
 
@@ -127,7 +105,7 @@ router.post("/payInvoice", async (req, res) => {
         const pdfPath = `./receipts/${invoiceId}_receipt.pdf`;
         await generatePDF(
             {
-                receiptId: receipt.transactionHash,
+                receiptId: transactionHash,
                 invoiceId,
                 payer: invoice.payer,
                 amount: invoice.amount,
@@ -139,7 +117,7 @@ router.post("/payInvoice", async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Payment successful",
-            receipt,
+            // receipt,
             receiptPdfUrl: `http://localhost:3000/receipts/${invoiceId}_receipt.pdf`,
         });
     } catch (error) {
@@ -178,27 +156,22 @@ router.get("/generateQrCode/:invoiceId", async (req, res) => {
 /**
  * Route to get invoice details by ID
  */
-router.get("/getInvoice/:id", async (req, res) => {
-    try {
-        const invoiceId = BigInt(req.params.id);
+router.get("/getInvoice/:invoiceId", async (req, res) => {
+    const { invoiceId } = req.params;
 
-        // Validate input
-        if (!invoiceId) {
-            return res.status(400).send({ success: false, error: "Invoice ID is required" });
+    try {
+        const invoice = await Invoice.findOne({ invoiceId });
+        if (!invoice) {
+            return res.status(404).json({ success: false, error: "Invoice not found" });
         }
 
-        const invoice = await contract.getInvoiceDetails(invoiceId);
-
-        // Convert BigInt fields to strings
-        const invoiceWithStrings = Object.entries(invoice).reduce((acc, [key, value]) => {
-            acc[key] = typeof value === "bigint" ? value.toString() : value;
-            return acc;
-        }, {});
-
-        res.status(200).send({ success: true, invoice: invoiceWithStrings });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send({ success: false, error: err.message });
+        res.status(200).json({
+            success: true,
+            invoice,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -206,23 +179,23 @@ router.get("/getInvoice/:id", async (req, res) => {
 /**
  * Route to get all invoices for a user
  */
-router.get("/getUserInvoices/:userAddress", async (req, res) => {
-    try {
-        const { userAddress } = req.params;
+// router.get("/getUserInvoices/:userAddress", async (req, res) => {
+//     try {
+//         const { userAddress } = req.params;
 
-        // Validate input
-        if (!ethers.utils.isAddress(userAddress)) {
-            return res.status(400).send({ success: false, error: "Invalid user address" });
-        }
+//         // Validate input
+//         if (!ethers.utils.isAddress(userAddress)) {
+//             return res.status(400).send({ success: false, error: "Invalid user address" });
+//         }
 
-        // Fetch invoices from the contract
-        const invoices = await contract.getInvoicesByUser(userAddress);
-        res.status(200).send({ success: true, invoices });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send({ success: false, error: err.message });
-    }
-});
+//         // Fetch invoices from the contract
+//         const invoices = await contract.getInvoicesByUser(userAddress);
+//         res.status(200).send({ success: true, invoices });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).send({ success: false, error: err.message });
+//     }
+// });
 
 router.get("/downloadInvoice/:invoiceId", async (req, res) => {
     const { invoiceId } = req.params;

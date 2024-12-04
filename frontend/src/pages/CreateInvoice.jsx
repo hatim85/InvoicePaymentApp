@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { ethers } from "ethers";
+import Ethers from "../utils/Ethers";
 
-const CreateInvoice = () => {
-    const [payer, setPayer] = useState("");
+const CreateInvoice = ({ address }) => {
+    const [payer, setPayer] = useState(""); // Manually entered payer address
     const [description, setDescription] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [invoiceId, setInvoiceId] = useState("");
@@ -12,6 +13,14 @@ const CreateInvoice = () => {
     const [invoicePdfUrl, setInvoicePdfUrl] = useState(""); // To store the invoice PDF URL
     const [items, setItems] = useState([{ itemName: "", itemPrice: "" }]); // For storing items and prices
     const [totalAmount, setTotalAmount] = useState(0); // To store the dynamically calculated total amount
+    const [walletAddress, setWalletAddress] = useState(""); // To store the connected wallet address
+
+    useEffect(() => {
+        // If the address is passed as a prop (connected wallet address), store it in state
+        if (address) {
+            setWalletAddress(address);
+        }
+    }, [address]);
 
     // Handle input changes for item and price
     const handleItemChange = (index, field, value) => {
@@ -45,44 +54,67 @@ const CreateInvoice = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
+        const Etherinst = Ethers(); // Initialize Ether instance
         try {
-            const amountInWei = ethers.parseUnits(totalAmount.toString(), "ether").toString();  // Use parseUnits from ethers.js
+            const amountInWei = ethers.utils.parseUnits(totalAmount.toString(), "ether").toString(); // Convert amount to Wei
+            const dueDateTimestamp = new Date(dueDate).getTime(); // Convert due date to timestamp
 
-            const dueDateTimestamp = new Date(dueDate).getTime();
-    
+            // Log connected wallet address
+            console.log("Issuer Address (connected wallet):", walletAddress);
+
+            // Interact with smart contract
+            const { provider, signer, contract } = Etherinst; // Get provider, signer, contract
+            console.log(contract);
+
+            // Call the smart contract to create the invoice
+            const tx = await contract.createInvoice(payer, amountInWei, description, dueDateTimestamp);
+            const receipt = await tx.wait(); // Wait for transaction to be mined
+
+            // Get invoiceId from event emitted by contract
+            const invoiceId = receipt.events[0].args.invoiceId.toString();
+
+            // Send data to backend to create invoice record
             const response = await axios.post("http://localhost:3000/createInvoice", {
                 payer,
                 description,
                 dueDate: dueDateTimestamp, // Send the timestamp
-                items, // Sending the items and their prices
-                amount: amountInWei, // Send the amount in wei
+                items, // Send the items array
+                amount: amountInWei, // Send amount in wei
+                invoiceId, // Send invoiceId from contract event
+                issuerAddress: walletAddress, // Pass the connected wallet address as issuer
             });
-    
-            // Handle errors
-            if (response.status !== 201) {
+
+            if (response.status === 201) {
+                setInvoiceId(response.data.invoiceId);
+                setPaymentUrl(response.data.paymentUrl);
+                setQrCode(response.data.qrCode);
+                setInvoicePdfUrl(response.data.issuerPdfUrl); // Set PDF URL
+            } else {
                 console.log(response.data);
             }
-    
-            // Set the response data to state
-            setInvoiceId(response.data.invoiceId);
-            setPaymentUrl(response.data.paymentUrl);
-            setQrCode(response.data.qrCode);
-            setInvoicePdfUrl(response.data.issuerPdfUrl); // Store the PDF URL
         } catch (error) {
             console.error(error.message);
         }
     };
-    
+
+
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
             <h2 className="text-2xl font-semibold mb-6">Create an Invoice</h2>
+            {walletAddress ? (
+                <div>
+                    <p>Connected Wallet (Issuer): {walletAddress}</p>
+                </div>
+            ) : (
+                <p>No wallet connected</p>
+            )}
+
             <form className="w-full max-w-md space-y-4" onSubmit={handleSubmit}>
                 <input
                     type="text"
                     className="w-full p-3 rounded-md border border-gray-300"
-                    placeholder="Payer Address"
+                    placeholder="Payer Address (manually enter)"
                     value={payer}
                     onChange={(e) => setPayer(e.target.value)}
                 />
@@ -132,12 +164,14 @@ const CreateInvoice = () => {
                             )}
                         </div>
                     ))}
+                    {/* <a href="http://localhost:3000/invoices/30.pdf" download className="bg-red-500">
+                        Download Invoice
+                    </a> */}
                 </div>
                 <button
                     type="button"
                     className="w-full bg-gray-300 text-gray-800 py-2 rounded-md mt-4"
                     onClick={handleAddItem}
-                    disabled={items.length >= 5} // Disable after 5 items
                 >
                     Add Item
                 </button>

@@ -1,7 +1,16 @@
 import mongoose from "mongoose";
 
 const InvoiceSchema = new mongoose.Schema({
+  invoiceId: { 
+    type: String, 
+    required: true,    // Invoice ID is required
+    unique: true       // Invoice ID should be unique
+  },
   payer: String,
+  qrCodeContent: {
+    type: String,      // URL for QR code
+    required: true,    // QR code content is required
+  },
   issuer: String,
   amount: Number,
   description: String,

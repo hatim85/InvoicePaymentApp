@@ -40,7 +40,6 @@ const ViewInvoice = () => {
                     <p><strong>Description:</strong> {invoiceDetails.description}</p>
                     <p><strong>Due Date:</strong> {invoiceDetails.dueDate}</p>
                     <p><strong>Status:</strong> {invoiceDetails.status}</p>
-                    <a href={`http://localhost:3000/payInvoice/${invoiceId}`} className="text-blue-500">Pay Invoice</a>
                 </div>
             )}
         </div>
