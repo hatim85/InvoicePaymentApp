@@ -192,12 +192,12 @@ const CreateInvoice = ({ address }) => {
             {invoiceId && (
                 <div className="mt-6 text-center">
                     <p>Invoice Created! Invoice ID: {invoiceId}</p>
-                    <p>
+                    {/* <p>
                         <a href={paymentUrl} className="text-blue-500">Pay Invoice</a>
                     </p>
                     <div className="mt-4">
                         <img src={qrCode} alt="QR Code" />
-                    </div>
+                    </div> */}
 
                     {/* Display the Download Invoice Button */}
                     {invoicePdfUrl && (

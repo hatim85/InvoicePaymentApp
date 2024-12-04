@@ -125,7 +125,6 @@ function App() {
   return (
     <>
 
-      Wallet Connect Button
             <button
                 onClick={connectWallet}
                 className="wallet-btn bg-blue-600 top-0 absolute right-0 m-5 p-3 text-center rounded-md"
