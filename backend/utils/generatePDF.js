@@ -23,6 +23,7 @@ export const generatePDF = async (data, pdfPath) => {
             doc.text(`Payer: ${data.payer}`);
             doc.text(`Description: ${data.description}`);
 
+            console.log("amount in wei: ",data.amount)
             // Convert Amount from Wei to Ether
             const amountInEther = ethers.utils.formatUnits(data.amount, "ether");
             doc.text(`Amount: ${amountInEther} XFI`);

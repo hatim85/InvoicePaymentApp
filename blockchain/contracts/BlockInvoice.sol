@@ -43,7 +43,6 @@ contract BlockInvoice {
     ) public {
         require(_recipient != address(0), "Invalid recipient address");
         require(_amount > 0, "Amount must be greater than 0");
-        require(_dueDate > block.timestamp, "Due date must be in the future");
         require(msg.sender != _recipient, "Cannot create invoice for yourself"); // Guard: issuer cannot be the recipient
 
         // Create the invoice
@@ -83,7 +82,6 @@ contract BlockInvoice {
             "Only the recipient can pay this invoice"
         );
         require(!invoice.isPaid, "Invoice is already paid");
-        require(block.timestamp <= invoice.dueDate, "Invoice is overdue");
 
         // Handle payment in native currency (Ether)
         require(msg.value == invoice.amount, "Incorrect payment amount");

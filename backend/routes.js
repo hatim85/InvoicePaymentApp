@@ -103,12 +103,14 @@ router.post("/updateInvoiceStatus", async (req, res) => {
 
         // Generate payment receipt PDF
         const pdfPath = `./receipts/${invoiceId}_receipt.pdf`;
+        const valueInEther = ethers.utils.formatUnits(invoice.amount, "ether");
+        console.log(valueInEther); 
         await generatePDF(
             {
                 receiptId: transactionHash,
                 invoiceId,
                 payer: invoice.payer,
-                amount: invoice.amount,
+                amount: valueInEther,
                 datePaid: invoice.datePaid.toISOString(),
             },
             pdfPath

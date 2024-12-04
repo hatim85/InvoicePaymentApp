@@ -68,10 +68,12 @@ const PayInvoice = ({ address }) => {
             }
 
             console.log("Contract found:", contract);
-
+            console.log("invoice detail amt: ",invoiceDetails.amount);
             // Calculate payment amount in wei
-            const paymentAmountInWei = ethers.utils.parseUnits(invoiceDetails.amount.toString(), "ether");
-            console.log("Payment amount (in Wei):", paymentAmountInWei.toString());
+            console.log(typeof(invoiceDetails.amount));
+            const paymentAmountInWei=ethers.BigNumber.from(invoiceDetails.amount.toString());
+            // const paymentAmountInWei = ethers.utils.parseUnits(invoiceDetails.amount.toString(), "ether");
+            console.log("Payment amount (in Wei):", paymentAmountInWei);
 
             // Interact with the contract
             console.log("Attempting to pay invoice with ID:", invoiceId);
