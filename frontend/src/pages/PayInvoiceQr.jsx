@@ -13,26 +13,15 @@ const PayInvoiceQr = ({ address }) => {
     const [contract, setContract] = useState(null); // Store contract instance
     const [receiptUrl, setReceiptUrl] = useState("");
 
+    useEffect(() => {
+        // If the address is passed as a prop (connected wallet address), store it in state
+        if (address) {
+            setWalletAddress(address);
+        }
+    }, [address]);
+    
     // UseEffect hook to fetch wallet address and contract when the component mounts
     useEffect(() => {
-        const fetchWalletAddressAndContract = async () => {
-            try {
-                const { provider, signer, contract } = Ethers(); // Assuming this provides provider and signer
-                if (signer) {
-                    const address = await signer.getAddress();
-                    setWalletAddress(address);
-                    console.log("Connected Wallet Address:", address);
-                } else {
-                    console.log("Ethereum provider is not available.");
-                }
-                setContract(contract); // Set the contract instance
-            } catch (error) {
-                console.error("Error fetching wallet address or contract:", error);
-            }
-        };
-
-        fetchWalletAddressAndContract();
-
         // Fetch invoice details when the component mounts
         const fetchInvoiceDetails = async () => {
             try {

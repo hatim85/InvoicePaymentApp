@@ -11,26 +11,33 @@ const PayInvoice = ({ address }) => {
     const [walletAddress, setWalletAddress] = useState(""); // State for wallet address
     const [receiptUrl,setReceiptUrl]=useState("");
 
-    // UseEffect hook to fetch wallet address when the component mounts
-    useEffect(() => {
-        console.log("ethers: ",ethers.utils)
-        const fetchWalletAddress = async () => {
-            try {
-                const { provider, signer } = Ethers();
-                if (signer) {
-                    const address = await signer.getAddress();
-                    setWalletAddress(address);
-                    console.log("Connected Wallet Address:", address);
-                } else {
-                    console.log("Ethereum provider is not available.");
-                }
-            } catch (error) {
-                console.error("Error fetching wallet address:", error);
-            }
-        };
+    // // UseEffect hook to fetch wallet address when the component mounts
+    // useEffect(() => {
+    //     console.log("ethers: ",ethers.utils)
+    //     const fetchWalletAddress = async () => {
+    //         try {
+    //             const { provider, signer } = Ethers();
+    //             if (signer) {
+    //                 const address = await signer.getAddress();
+    //                 setWalletAddress(address);
+    //                 console.log("Connected Wallet Address:", address);
+    //             } else {
+    //                 console.log("Ethereum provider is not available.");
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching wallet address:", error);
+    //         }
+    //     };
 
-        fetchWalletAddress();
-    }, []); // Only run once on mount
+    //     fetchWalletAddress();
+    // }, []); // Only run once on mount
+
+    useEffect(() => {
+        // If the address is passed as a prop (connected wallet address), store it in state
+        if (address) {
+            setWalletAddress(address);
+        }
+    }, [address]);
 
     const handleFetchInvoice = async () => {
         try {
