@@ -49,7 +49,7 @@ router.post("/createInvoice", async (req, res) => {
             dueDate,
             items,
             status: "Pending",
-            qrCodeContent: `https://block-invoice.vercel.app/PayInvoiceQr/${invoiceId}`, // URL for QR code
+            qrCodeContent: `https://block-invoice.vercel.app/payInvoiceQr/${invoiceId}`, // URL for QR code
         };
         console.log("Invoice data to be saved:", invoiceData);
 
@@ -161,7 +161,7 @@ router.get("/generateQrCode/:invoiceId", async (req, res) => {
         }
 
         // Generate a payment link
-        const paymentUrl = `https://block-invoice.vercel.app/PayInvoiceQr/${invoiceId}`;
+        const paymentUrl = `https://block-invoice.vercel.app/payInvoiceQr/${invoiceId}`;
 
         // Generate QR Code
         const qrCode = await QRCode.toDataURL(paymentUrl);
