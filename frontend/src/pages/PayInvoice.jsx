@@ -42,7 +42,7 @@ const PayInvoice = ({ address }) => {
 
     const handleFetchInvoice = async () => {
         try {
-            const response = await axios.get(`http://localhost:3000/getInvoice/${invoiceId}`);
+            const response = await axios.get(`https://invoicepaymentapp.onrender.com/getInvoice/${invoiceId}`);
             console.log(response);
             const bigno = ethers.BigNumber.from(response.data.invoice.amount.toString());
             const amount = ethers.utils.formatEther(bigno);
@@ -107,7 +107,7 @@ const PayInvoice = ({ address }) => {
 
             // Call backend to update invoice status
             try {
-                const response = await axios.post("http://localhost:3000/updateInvoiceStatus", {
+                const response = await axios.post("https://invoicepaymentapp.onrender.com/updateInvoiceStatus", {
                     invoiceId,
                     transactionHash: receipt.transactionHash,
                 });
@@ -133,63 +133,63 @@ const PayInvoice = ({ address }) => {
 
     return (
         <>
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-        <Link to="/" className="absolute left-0 top-0 bg-green-500 text-white rounded-md px-3 py-3 m-5">Return Home</Link>
-            <h2 className="text-2xl font-semibold mb-6">Pay Invoice</h2>
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+                <Link to="/" className="absolute left-0 top-0 bg-green-500 text-white rounded-md px-3 py-3 m-5">Return Home</Link>
+                <h2 className="text-2xl font-semibold mb-6">Pay Invoice</h2>
 
-            {/* Display Wallet Address */}
-            {walletAddress && (
-                <p className="text-lg mb-4">
-                    <strong>Connected Wallet Address: </strong>{walletAddress}
-                </p>
-            )}
+                {/* Display Wallet Address */}
+                {walletAddress && (
+                    <p className="text-lg mb-4">
+                        <strong>Connected Wallet Address: </strong>{walletAddress}
+                    </p>
+                )}
 
-            <input
-                type="text"
-                className="w-full max-w-md p-3 rounded-md border border-gray-300"
-                placeholder="Enter Invoice ID"
-                value={invoiceId}
-                onChange={(e) => setInvoiceId(e.target.value)}
-            />
-            <button
-                className="mt-4 bg-blue-500 text-white py-3 px-6 rounded-md"
-                onClick={handleFetchInvoice}
-            >
-                Fetch Invoice
-            </button>
+                <input
+                    type="text"
+                    className="w-full max-w-md p-3 rounded-md border border-gray-300"
+                    placeholder="Enter Invoice ID"
+                    value={invoiceId}
+                    onChange={(e) => setInvoiceId(e.target.value)}
+                />
+                <button
+                    className="mt-4 bg-blue-500 text-white py-3 px-6 rounded-md"
+                    onClick={handleFetchInvoice}
+                >
+                    Fetch Invoice
+                </button>
 
-            {invoiceDetails && (
-                <div className="mt-6 space-y-4">
-                    <p><strong>Amount:</strong> {invoiceDetails.amount} XFI</p>
-                    {/* <p><strong>Amount:</strong> {ethers.utils.formatUnits(invoiceDetails.amount,"ether")} ETH</p> */}
-                    <p><strong>Recipient:</strong> {invoiceDetails.issuer}</p>
-                    <p><strong>Due Date:</strong> {new Date(invoiceDetails.dueDate).toLocaleString()}</p>
-                    <button
-                        className="mt-4 bg-green-500 text-white py-3 px-6 rounded-md"
-                        onClick={handlePayment}
-                        disabled={loading}
-                    >
-                        {loading ? "Processing..." : "Pay Now"}
-                    </button>
-                </div>
-            )}
+                {invoiceDetails && (
+                    <div className="mt-6 space-y-4">
+                        <p><strong>Amount:</strong> {invoiceDetails.amount} XFI</p>
+                        {/* <p><strong>Amount:</strong> {ethers.utils.formatUnits(invoiceDetails.amount,"ether")} ETH</p> */}
+                        <p><strong>Recipient:</strong> {invoiceDetails.issuer}</p>
+                        <p><strong>Due Date:</strong> {new Date(invoiceDetails.dueDate).toLocaleString()}</p>
+                        <button
+                            className="mt-4 bg-green-500 text-white py-3 px-6 rounded-md"
+                            onClick={handlePayment}
+                            disabled={loading}
+                        >
+                            {loading ? "Processing..." : "Pay Now"}
+                        </button>
+                    </div>
+                )}
 
-            {paymentStatus && (
-                <div className="mt-6 text-center text-lg">
-                    <p>{paymentStatus}</p>
-                    {console.log("below payment status receipt pdf url: ", receiptUrl)}
-                    {receiptUrl && (
-                        <div className="mt-4">
-                            <a href={receiptUrl} download>
-                                <button className="bg-green-500 text-white py-2 px-4 rounded-md">
-                                    View Receipt
-                                </button>
-                            </a>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
+                {paymentStatus && (
+                    <div className="mt-6 text-center text-lg">
+                        <p>{paymentStatus}</p>
+                        {console.log("below payment status receipt pdf url: ", receiptUrl)}
+                        {receiptUrl && (
+                            <div className="mt-4">
+                                <a href={receiptUrl} download>
+                                    <button className="bg-green-500 text-white py-2 px-4 rounded-md">
+                                        View Receipt
+                                    </button>
+                                </a>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </>
     );
 };

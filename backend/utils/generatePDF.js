@@ -114,6 +114,15 @@ export const generatePDF = async (data, pdfPath) => {
                         align: "center",
                     });
 
+                    // Add clickable link below the QR code
+                    doc.moveDown(2); // Add some space below the QR code
+                    const paymentLink = data.qrCodeContent; // Assuming this is the URL the QR code represents
+                    doc.text("Click here to pay", {
+                        align: "center",
+                        link: paymentLink,
+                        underline: true, // Optional: underline the link for better visibility
+                    });
+
                     // Finalize the PDF file after embedding QR code
                     doc.end();
                 });

@@ -30,4 +30,4 @@ const __dirname = path.dirname(__filename);
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 app.use('/receipts', express.static(path.join(__dirname, 'receipts')));
 
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Server running on ${port}`));
