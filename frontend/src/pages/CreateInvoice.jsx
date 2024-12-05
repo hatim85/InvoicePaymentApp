@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { ethers } from "ethers";
 import Ethers from "../utils/Ethers";
+import { Link } from "react-router-dom";
 
 const CreateInvoice = ({ address }) => {
     const [payer, setPayer] = useState(""); // Manually entered payer address
@@ -74,7 +75,7 @@ const CreateInvoice = ({ address }) => {
             const invoiceId = receipt.events[0].args.invoiceId.toString();
 
             // Send data to backend to create invoice record
-            const response = await axios.post("https://invoicepaymentapp.onrender.com/createInvoice", {
+            const response = await axios.post("http://localhost:3000/createInvoice", {
                 payer,
                 description,
                 dueDate: dueDateTimestamp, // Send the timestamp
@@ -101,6 +102,7 @@ const CreateInvoice = ({ address }) => {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+            <Link to="/" className="absolute left-0 top-0 bg-green-500 text-white rounded-md px-3 py-3 m-5">Return Home</Link>
             <h2 className="text-2xl font-semibold mb-6">Create an Invoice</h2>
             {walletAddress ? (
                 <div>
@@ -164,7 +166,7 @@ const CreateInvoice = ({ address }) => {
                             )}
                         </div>
                     ))}
-                    {/* <a href="https://invoicepaymentapp.onrender.com/invoices/30.pdf" download className="bg-red-500">
+                    {/* <a href="http://localhost:3000/invoices/30.pdf" download className="bg-red-500">
                         Download Invoice
                     </a> */}
                 </div>

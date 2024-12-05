@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Ethers from "../utils/Ethers"; // Assuming you have a utility to handle ethers
 import { ethers } from "ethers";
-import { useParams } from "react-router-dom"; // Use useParams to access URL parameters
+import { Link, useParams } from "react-router-dom"; // Use useParams to access URL parameters
 
 const PayInvoiceQr = ({ address }) => {
     const { invoiceId } = useParams(); // Get invoiceId from URL
@@ -19,13 +19,13 @@ const PayInvoiceQr = ({ address }) => {
             setWalletAddress(address);
         }
     }, [address]);
-    
+
     // UseEffect hook to fetch wallet address and contract when the component mounts
     useEffect(() => {
         // Fetch invoice details when the component mounts
         const fetchInvoiceDetails = async () => {
             try {
-                const response = await axios.get(`https://invoicepaymentapp.onrender.com/getInvoice/${invoiceId}`);
+                const response = await axios.get(`http://localhost:3000/getInvoice/${invoiceId}`);
                 console.log(response);
                 const bigno = ethers.BigNumber.from(response.data.invoice.amount.toString());
                 const amount = ethers.utils.formatEther(bigno);
@@ -93,7 +93,7 @@ const PayInvoiceQr = ({ address }) => {
 
             // Call backend to update invoice status
             try {
-                const response = await axios.post("https://invoicepaymentapp.onrender.com/updateInvoiceStatus", {
+                const response = await axios.post("http://localhost:3000/updateInvoiceStatus", {
                     invoiceId,
                     transactionHash: receipt.transactionHash,
                 });
@@ -116,51 +116,54 @@ const PayInvoiceQr = ({ address }) => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-            <h2 className="text-2xl font-semibold mb-6">Pay Invoice</h2>
+        <>
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+                <Link to="/" className="absolute left-0 top-0 bg-green-500 text-white rounded-md px-3 py-3 m-5">Return Home</Link>
+                <h2 className="text-2xl font-semibold mb-6">Pay Invoice</h2>
 
-            {/* Display Wallet Address */}
-            {walletAddress && (
-                <p className="text-lg mb-4">
-                    <strong>Connected Wallet Address: </strong>{walletAddress}
-                </p>
-            )}
+                {/* Display Wallet Address */}
+                {walletAddress && (
+                    <p className="text-lg mb-4">
+                        <strong>Connected Wallet Address: </strong>{walletAddress}
+                    </p>
+                )}
 
-            {/* Invoice Details */}
-            {invoiceDetails ? (
-                <div className="mt-6 space-y-4">
-                    <p><strong>Amount:</strong> {invoiceDetails.amount} ETH</p>
-                    <p><strong>Recipient:</strong> {invoiceDetails.issuer}</p>
-                    <p><strong>Due Date:</strong> {new Date(invoiceDetails.dueDate).toLocaleString()}</p>
-                    {/* Payment button will be triggered automatically upon loading */}
-                    <button
-                        className="mt-4 bg-green-500 text-white py-3 px-6 rounded-md"
-                        onClick={handlePayment}
-                        disabled={loading}
-                    >
-                        {loading ? "Processing..." : "Pay Now"}
-                    </button>
-                </div>
-            ) : (
-                <p>Loading invoice details...</p>
-            )}
+                {/* Invoice Details */}
+                {invoiceDetails ? (
+                    <div className="mt-6 space-y-4">
+                        <p><strong>Amount:</strong> {invoiceDetails.amount} ETH</p>
+                        <p><strong>Recipient:</strong> {invoiceDetails.issuer}</p>
+                        <p><strong>Due Date:</strong> {new Date(invoiceDetails.dueDate).toLocaleString()}</p>
+                        {/* Payment button will be triggered automatically upon loading */}
+                        <button
+                            className="mt-4 bg-green-500 text-white py-3 px-6 rounded-md"
+                            onClick={handlePayment}
+                            disabled={loading}
+                        >
+                            {loading ? "Processing..." : "Pay Now"}
+                        </button>
+                    </div>
+                ) : (
+                    <p>Loading invoice details...</p>
+                )}
 
-            {paymentStatus && (
-                <div className="mt-6 text-center text-lg">
-                    <p>{paymentStatus}</p>
-                    {console.log("below payment status receipt pdf url: ", receiptUrl)}
-                    {receiptUrl && (
-                        <div className="mt-4">
-                            <a href={receiptUrl} download>
-                                <button className="bg-green-500 text-white py-2 px-4 rounded-md">
-                                    View Receipt
-                                </button>
-                            </a>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
+                {paymentStatus && (
+                    <div className="mt-6 text-center text-lg">
+                        <p>{paymentStatus}</p>
+                        {console.log("below payment status receipt pdf url: ", receiptUrl)}
+                        {receiptUrl && (
+                            <div className="mt-4">
+                                <a href={receiptUrl} download>
+                                    <button className="bg-green-500 text-white py-2 px-4 rounded-md">
+                                        View Receipt
+                                    </button>
+                                </a>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </>
     );
 };
 

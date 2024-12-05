@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 const ViewInvoice = () => {
     const [invoiceId, setInvoiceId] = useState("");
@@ -7,7 +8,7 @@ const ViewInvoice = () => {
 
     const handleFetchInvoice = async () => {
         try {
-            const response = await axios.get(`https://invoicepaymentapp.onrender.com/getInvoice/${invoiceId}`);
+            const response = await axios.get(`http://localhost:3000/getInvoice/${invoiceId}`);
             if(!response.ok){
                 console.log(response.data);
             }
@@ -19,6 +20,7 @@ const ViewInvoice = () => {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+            <Link to="/" className="absolute left-0 top-0 bg-green-500 text-white rounded-md px-3 py-3 m-5">Return Home</Link>
             <h2 className="text-2xl font-semibold mb-6">View Invoice</h2>
             <input
                 type="text"

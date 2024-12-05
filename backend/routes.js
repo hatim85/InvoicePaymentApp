@@ -49,7 +49,7 @@ router.post("/createInvoice", async (req, res) => {
             dueDate,
             items,
             status: "Pending",
-            qrCodeContent: `https://block-invoice.vercel.app/PayInvoiceQr/${invoiceId}`, // URL for QR code
+            qrCodeContent: `http://localhost:5173/PayInvoiceQr/${invoiceId}`, // URL for QR code
         };
         console.log("Invoice data to be saved:", invoiceData);
 
@@ -66,7 +66,7 @@ router.post("/createInvoice", async (req, res) => {
         res.status(201).json({
             message: "Invoice created successfully",
             invoiceId,
-            issuerPdfUrl: `https://invoicepaymentapp.onrender.com/invoices/${invoiceId}.pdf`,
+            issuerPdfUrl: `http://localhost:3000/invoices/${invoiceId}.pdf`,
         });
     } catch (error) {
         console.error("Error occurred during invoice creation:", error);
@@ -94,7 +94,7 @@ router.post("/updateInvoiceStatus", async (req, res) => {
         if (!invoice) {
             return res.status(404).json({ success: false, error: "Invoice not found" });
         }
-        console.log("Full invoice details: ",invoice)
+        console.log("Full invoice details: ", invoice)
         // Update invoice status and save
         invoice.status = "Paid";
         invoice.transactionHash = transactionHash;
@@ -109,13 +109,13 @@ router.post("/updateInvoiceStatus", async (req, res) => {
         // console.log("Amount in Wei:", amountInWei.toString());
 
         // Format the amount in Ether for display purposes
-        const bigno=ethers.BigNumber.from(invoice.amount.toString());
-        console.log("bigno: ",bigno);
+        const bigno = ethers.BigNumber.from(invoice.amount.toString());
+        console.log("bigno: ", bigno);
         const valueInEther = ethers.utils.formatEther(bigno);
         // const valueInEther = ethers.utils.formatEther(invoice.amount);
         console.log("Amount in Ether:", valueInEther);
 
-        const valueInWei=ethers.utils.parseUnits(valueInEther,18)
+        const valueInWei = ethers.utils.parseUnits(valueInEther, 18)
 
         // const toWei = (num) => ethers.parseEther(num.toString())
         // const fromWei = (num) => ethers.formatEther(num)
@@ -138,7 +138,7 @@ router.post("/updateInvoiceStatus", async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Payment successful",
-            receiptPdfUrl: `https://invoicepaymentapp.onrender.com/receipts/${invoiceId}_receipt.pdf`,
+            receiptPdfUrl: `http://localhost:3000/receipts/${invoiceId}_receipt.pdf`,
         });
     } catch (error) {
         console.error(error);
@@ -161,7 +161,7 @@ router.get("/generateQrCode/:invoiceId", async (req, res) => {
         }
 
         // Generate a payment link
-        const paymentUrl = `https://block-invoice.vercel.app/PayInvoiceQr/${invoiceId}`;
+        const paymentUrl = `http://localhost:5173/PayInvoiceQr/${invoiceId}`;
 
         // Generate QR Code
         const qrCode = await QRCode.toDataURL(paymentUrl);

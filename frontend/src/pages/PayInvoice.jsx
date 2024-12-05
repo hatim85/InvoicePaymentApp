@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Ethers from "../utils/Ethers";
 import { ethers } from "ethers";
+import { Link } from "react-router-dom";
 
 const PayInvoice = ({ address }) => {
     const [invoiceId, setInvoiceId] = useState("");
@@ -9,7 +10,7 @@ const PayInvoice = ({ address }) => {
     const [loading, setLoading] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState("");
     const [walletAddress, setWalletAddress] = useState(""); // State for wallet address
-    const [receiptUrl,setReceiptUrl]=useState("");
+    const [receiptUrl, setReceiptUrl] = useState("");
 
     // // UseEffect hook to fetch wallet address when the component mounts
     // useEffect(() => {
@@ -41,13 +42,13 @@ const PayInvoice = ({ address }) => {
 
     const handleFetchInvoice = async () => {
         try {
-            const response = await axios.get(`https://invoicepaymentapp.onrender.com/getInvoice/${invoiceId}`);
+            const response = await axios.get(`http://localhost:3000/getInvoice/${invoiceId}`);
             console.log(response);
-            const bigno=ethers.BigNumber.from(response.data.invoice.amount.toString());
-            const amount=ethers.utils.formatEther(bigno);
+            const bigno = ethers.BigNumber.from(response.data.invoice.amount.toString());
+            const amount = ethers.utils.formatEther(bigno);
 
-            response.data.invoice.amount=amount;
-            console.log(typeof(response.data.invoice.amount));
+            response.data.invoice.amount = amount;
+            console.log(typeof (response.data.invoice.amount));
             setInvoiceDetails(response.data.invoice);
         } catch (error) {
             console.error("Error fetching invoice:", error);
@@ -73,7 +74,7 @@ const PayInvoice = ({ address }) => {
 
         try {
             const { provider, signer, contract } = Ethers();
-            
+
             if (!contract) {
                 console.log("Ethereum contract not found.");
                 setPaymentStatus("Ethereum environment not found. Install MetaMask and try again.");
@@ -81,9 +82,9 @@ const PayInvoice = ({ address }) => {
             }
 
             console.log("Contract found:", contract);
-            console.log("invoice detail amt: ",invoiceDetails.amount);
+            console.log("invoice detail amt: ", invoiceDetails.amount);
             // Calculate payment amount in wei
-            console.log(typeof(invoiceDetails.amount));
+            console.log(typeof (invoiceDetails.amount));
             // const paymentAmountInWei=ethers.BigNumber.from(invoiceDetails.amount.toString());
             const paymentAmountInWei = ethers.utils.parseUnits(invoiceDetails.amount.toString(), "ether");
             console.log("Payment amount (in Wei):", paymentAmountInWei);
@@ -95,7 +96,7 @@ const PayInvoice = ({ address }) => {
             });
 
             console.log("Transaction sent:", tx);
-            
+
             // Wait for transaction to be mined
             const receipt = await tx.wait();
             console.log("Transaction receipt received:", receipt);
@@ -106,7 +107,7 @@ const PayInvoice = ({ address }) => {
 
             // Call backend to update invoice status
             try {
-                const response = await axios.post("https://invoicepaymentapp.onrender.com/updateInvoiceStatus", {
+                const response = await axios.post("http://localhost:3000/updateInvoiceStatus", {
                     invoiceId,
                     transactionHash: receipt.transactionHash,
                 });
@@ -131,9 +132,11 @@ const PayInvoice = ({ address }) => {
     };
 
     return (
+        <>
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+        <Link to="/" className="absolute left-0 top-0 bg-green-500 text-white rounded-md px-3 py-3 m-5">Return Home</Link>
             <h2 className="text-2xl font-semibold mb-6">Pay Invoice</h2>
-            
+
             {/* Display Wallet Address */}
             {walletAddress && (
                 <p className="text-lg mb-4">
@@ -174,7 +177,7 @@ const PayInvoice = ({ address }) => {
             {paymentStatus && (
                 <div className="mt-6 text-center text-lg">
                     <p>{paymentStatus}</p>
-                    {console.log("below payment status receipt pdf url: ",receiptUrl)}
+                    {console.log("below payment status receipt pdf url: ", receiptUrl)}
                     {receiptUrl && (
                         <div className="mt-4">
                             <a href={receiptUrl} download>
@@ -187,6 +190,7 @@ const PayInvoice = ({ address }) => {
                 </div>
             )}
         </div>
+        </>
     );
 };
 
