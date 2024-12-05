@@ -49,7 +49,7 @@ router.post("/createInvoice", async (req, res) => {
             dueDate,
             items,
             status: "Pending",
-            qrCodeContent: `http://localhost:5173/PayInvoiceQr/${invoiceId}`, // URL for QR code
+            qrCodeContent: `https://block-invoice.vercel.app/PayInvoiceQr/${invoiceId}`, // URL for QR code
         };
         console.log("Invoice data to be saved:", invoiceData);
 
@@ -66,7 +66,7 @@ router.post("/createInvoice", async (req, res) => {
         res.status(201).json({
             message: "Invoice created successfully",
             invoiceId,
-            issuerPdfUrl: `http://localhost:3000/invoices/${invoiceId}.pdf`,
+            issuerPdfUrl: `https://invoicepaymentapp.onrender.com/invoices/${invoiceId}.pdf`,
         });
     } catch (error) {
         console.error("Error occurred during invoice creation:", error);
@@ -138,7 +138,7 @@ router.post("/updateInvoiceStatus", async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Payment successful",
-            receiptPdfUrl: `http://localhost:3000/receipts/${invoiceId}_receipt.pdf`,
+            receiptPdfUrl: `https://invoicepaymentapp.onrender.com/receipts/${invoiceId}_receipt.pdf`,
         });
     } catch (error) {
         console.error(error);
@@ -161,7 +161,7 @@ router.get("/generateQrCode/:invoiceId", async (req, res) => {
         }
 
         // Generate a payment link
-        const paymentUrl = `http://localhost:5173/PayInvoiceQr/${invoiceId}`;
+        const paymentUrl = `https://block-invoice.vercel.app/PayInvoiceQr/${invoiceId}`;
 
         // Generate QR Code
         const qrCode = await QRCode.toDataURL(paymentUrl);

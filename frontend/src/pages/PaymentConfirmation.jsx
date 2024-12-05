@@ -9,7 +9,7 @@ const PaymentConfirmation = () => {
     useEffect(() => {
         const fetchPaymentStatus = async () => {
             try {
-                const response = await axios.get(`http://localhost:3000/paymentStatus/${transactionHash}`);
+                const response = await axios.get(`https://invoicepaymentapp.onrender.com/paymentStatus/${transactionHash}`);
                 console.log(response)
                 setPaymentStatus(response.data.status);
             } catch (error) {

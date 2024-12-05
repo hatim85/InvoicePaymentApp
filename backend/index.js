@@ -7,10 +7,12 @@ import connectDB from "./utils/connectDB.js";
 import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from 'url';
+import dotenv from "dotenv"
+dotenv.config();
 
 connectDB();
 const app = express();
-const port = 3000;
+const port = process.env.port || 3000;
 
 // const provider = new ethers.JsonRpcProvider(ALCHEMY_API_KEY);
 
@@ -28,4 +30,4 @@ const __dirname = path.dirname(__filename);
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 app.use('/receipts', express.static(path.join(__dirname, 'receipts')));
 
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Server running on ${port}`));

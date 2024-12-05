@@ -7,7 +7,7 @@ const ViewInvoice = () => {
 
     const handleFetchInvoice = async () => {
         try {
-            const response = await axios.get(`http://localhost:3000/getInvoice/${invoiceId}`);
+            const response = await axios.get(`https://invoicepaymentapp.onrender.com/getInvoice/${invoiceId}`);
             if(!response.ok){
                 console.log(response.data);
             }

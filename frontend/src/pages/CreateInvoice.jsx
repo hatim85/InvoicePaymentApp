@@ -74,7 +74,7 @@ const CreateInvoice = ({ address }) => {
             const invoiceId = receipt.events[0].args.invoiceId.toString();
 
             // Send data to backend to create invoice record
-            const response = await axios.post("http://localhost:3000/createInvoice", {
+            const response = await axios.post("https://invoicepaymentapp.onrender.com/createInvoice", {
                 payer,
                 description,
                 dueDate: dueDateTimestamp, // Send the timestamp
@@ -164,7 +164,7 @@ const CreateInvoice = ({ address }) => {
                             )}
                         </div>
                     ))}
-                    {/* <a href="http://localhost:3000/invoices/30.pdf" download className="bg-red-500">
+                    {/* <a href="https://invoicepaymentapp.onrender.com/invoices/30.pdf" download className="bg-red-500">
                         Download Invoice
                     </a> */}
                 </div>
