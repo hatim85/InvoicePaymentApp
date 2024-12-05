@@ -49,7 +49,7 @@ router.post("/createInvoice", async (req, res) => {
             dueDate,
             items,
             status: "Pending",
-            qrCodeContent: `http://localhost:3000/payInvoice/${invoiceId}`, // URL for QR code
+            qrCodeContent: `http://localhost:5173/PayInvoiceQr/${invoiceId}`, // URL for QR code
         };
         console.log("Invoice data to be saved:", invoiceData);
 
@@ -82,7 +82,7 @@ router.post("/createInvoice", async (req, res) => {
  */
 router.post("/updateInvoiceStatus", async (req, res) => {
     try {
-        const { invoiceId,transactionHash } = req.body;
+        const { invoiceId, transactionHash } = req.body;
 
         // Validate input
         if (!invoiceId) {
@@ -94,24 +94,43 @@ router.post("/updateInvoiceStatus", async (req, res) => {
         if (!invoice) {
             return res.status(404).json({ success: false, error: "Invoice not found" });
         }
-
+        console.log("Full invoice details: ",invoice)
         // Update invoice status and save
         invoice.status = "Paid";
-        invoice.transactionHash=transactionHash;
+        invoice.transactionHash = transactionHash;
         invoice.datePaid = new Date();
         await invoice.save();
 
         // Generate payment receipt PDF
         const pdfPath = `./receipts/${invoiceId}_receipt.pdf`;
-        const valueInEther = ethers.utils.formatUnits(invoice.amount, "ether");
-        console.log(valueInEther); 
+
+        // Convert amount in Ether to Wei (as BigNumber)
+        // const amountInWei = ethers.utils.parseEther(invoice.amount.toString())
+        // console.log("Amount in Wei:", amountInWei.toString());
+
+        // Format the amount in Ether for display purposes
+        const bigno=ethers.BigNumber.from(invoice.amount.toString());
+        console.log("bigno: ",bigno);
+        const valueInEther = ethers.utils.formatEther(bigno);
+        // const valueInEther = ethers.utils.formatEther(invoice.amount);
+        console.log("Amount in Ether:", valueInEther);
+
+        const valueInWei=ethers.utils.parseUnits(valueInEther,18)
+
+        // const toWei = (num) => ethers.parseEther(num.toString())
+        // const fromWei = (num) => ethers.formatEther(num)
+
         await generatePDF(
             {
                 receiptId: transactionHash,
                 invoiceId,
+                issuer: invoice.issuer,
+                description: invoice.description,
                 payer: invoice.payer,
-                amount: valueInEther,
+                // amount: valueInEther,
+                amount: valueInWei,
                 datePaid: invoice.datePaid.toISOString(),
+                transactionHash
             },
             pdfPath
         );
@@ -119,7 +138,6 @@ router.post("/updateInvoiceStatus", async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Payment successful",
-            // receipt,
             receiptPdfUrl: `http://localhost:3000/receipts/${invoiceId}_receipt.pdf`,
         });
     } catch (error) {
@@ -127,6 +145,7 @@ router.post("/updateInvoiceStatus", async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 
 
 /**
@@ -142,7 +161,7 @@ router.get("/generateQrCode/:invoiceId", async (req, res) => {
         }
 
         // Generate a payment link
-        const paymentUrl = `http://localhost:3000/payInvoice/${invoiceId}`;
+        const paymentUrl = `http://localhost:5173/PayInvoiceQr/${invoiceId}`;
 
         // Generate QR Code
         const qrCode = await QRCode.toDataURL(paymentUrl);
@@ -222,6 +241,37 @@ router.get("/downloadInvoice/:invoiceId", async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error downloading invoice" });
+    }
+});
+
+router.get("/paymentStatus/:transactionHash", async (req, res) => {
+    const { transactionHash } = req.params;
+
+    try {
+        if (!transactionHash) {
+            return res.status(400).json({ success: false, message: "Transaction hash is required" });
+        }
+
+        // Fetch invoice by transaction hash
+        const invoice = await Invoice.findOne({ transactionHash });
+
+        if (!invoice) {
+            return res.status(404).json({ success: false, message: "Transaction not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            status: invoice.status,
+            invoiceDetails: {
+                invoiceId: invoice.invoiceId,
+                payer: invoice.payer,
+                amount: invoice.amount,
+                datePaid: invoice.datePaid,
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching payment status:", error);
+        res.status(500).json({ success: false, message: "Error fetching payment status" });
     }
 });
 

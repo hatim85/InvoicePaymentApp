@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { ethers } from "ethers";
 import { toast } from "react-toastify";
 import Ethers from "./utils/Ethers";
+import PayInvoiceQr from "./pages/PayInvoiceQr";
 
 function App() {
 
@@ -150,6 +151,7 @@ function App() {
             <Route path="/createInvoice" element={<CreateInvoice address={walletAddress} />} />
             <Route path="/viewInvoice" element={<ViewInvoice address={walletAddress}/>} />
             <Route path="/payInvoice" element={<PayInvoice address={walletAddress}/>} />
+            <Route path="/payInvoiceQR/:invoiceId" element={<PayInvoiceQr address={walletAddress}/>} />
             <Route path="/paymentConfirmation/:transactionHash" element={<PaymentConfirmation address={walletAddress}/>} />
           </Routes>
         </Router>

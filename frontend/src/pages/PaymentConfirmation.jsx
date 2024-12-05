@@ -10,6 +10,7 @@ const PaymentConfirmation = () => {
         const fetchPaymentStatus = async () => {
             try {
                 const response = await axios.get(`http://localhost:3000/paymentStatus/${transactionHash}`);
+                console.log(response)
                 setPaymentStatus(response.data.status);
             } catch (error) {
                 console.error(error);

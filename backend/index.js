@@ -26,5 +26,6 @@ const __dirname = path.dirname(__filename);
 
 // Serve static files from the 'invoices' folder
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
+app.use('/receipts', express.static(path.join(__dirname, 'receipts')));
 
 app.listen(port, () => console.log(`Server running on http://localhost:${port}`));

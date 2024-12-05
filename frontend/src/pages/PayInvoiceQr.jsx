@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Ethers from "../utils/Ethers";
+import Ethers from "../utils/Ethers"; // Assuming you have a utility to handle ethers
 import { ethers } from "ethers";
+import { useParams } from "react-router-dom"; // Use useParams to access URL parameters
 
-const PayInvoice = ({ address }) => {
-    const [invoiceId, setInvoiceId] = useState("");
+const PayInvoiceQr = ({ address }) => {
+    const { invoiceId } = useParams(); // Get invoiceId from URL
     const [invoiceDetails, setInvoiceDetails] = useState(null);
     const [loading, setLoading] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState("");
     const [walletAddress, setWalletAddress] = useState(""); // State for wallet address
-    const [receiptUrl,setReceiptUrl]=useState("");
+    const [contract, setContract] = useState(null); // Store contract instance
+    const [receiptUrl, setReceiptUrl] = useState("");
 
-    // UseEffect hook to fetch wallet address when the component mounts
+    // UseEffect hook to fetch wallet address and contract when the component mounts
     useEffect(() => {
-        console.log("ethers: ",ethers.utils)
-        const fetchWalletAddress = async () => {
+        const fetchWalletAddressAndContract = async () => {
             try {
-                const { provider, signer } = Ethers();
+                const { provider, signer, contract } = Ethers(); // Assuming this provides provider and signer
                 if (signer) {
                     const address = await signer.getAddress();
                     setWalletAddress(address);
@@ -24,30 +25,35 @@ const PayInvoice = ({ address }) => {
                 } else {
                     console.log("Ethereum provider is not available.");
                 }
+                setContract(contract); // Set the contract instance
             } catch (error) {
-                console.error("Error fetching wallet address:", error);
+                console.error("Error fetching wallet address or contract:", error);
             }
         };
 
-        fetchWalletAddress();
-    }, []); // Only run once on mount
+        fetchWalletAddressAndContract();
 
-    const handleFetchInvoice = async () => {
-        try {
-            const response = await axios.get(`http://localhost:3000/getInvoice/${invoiceId}`);
-            console.log(response);
-            const bigno=ethers.BigNumber.from(response.data.invoice.amount.toString());
-            const amount=ethers.utils.formatEther(bigno);
+        // Fetch invoice details when the component mounts
+        const fetchInvoiceDetails = async () => {
+            try {
+                const response = await axios.get(`http://localhost:3000/getInvoice/${invoiceId}`);
+                console.log(response);
+                const bigno = ethers.BigNumber.from(response.data.invoice.amount.toString());
+                const amount = ethers.utils.formatEther(bigno);
 
-            response.data.invoice.amount=amount;
-            console.log(typeof(response.data.invoice.amount));
-            setInvoiceDetails(response.data.invoice);
-        } catch (error) {
-            console.error("Error fetching invoice:", error);
-            setPaymentStatus("Failed to fetch invoice. Please try again.");
-        }
-    };
+                response.data.invoice.amount = amount;
+                console.log(typeof (response.data.invoice.amount));
+                setInvoiceDetails(response.data.invoice);
+            } catch (error) {
+                console.error("Error fetching invoice:", error);
+                setPaymentStatus("Failed to fetch invoice. Please try again.");
+            }
+        };
 
+        fetchInvoiceDetails(); // Automatically fetch invoice when component mounts
+    }, [invoiceId]); // Runs when the invoiceId changes
+
+    // Handle the payment
     const handlePayment = async () => {
         if (!invoiceDetails) {
             console.log("Invoice details are not available");
@@ -65,8 +71,6 @@ const PayInvoice = ({ address }) => {
         console.log("Payment processing started...");
 
         try {
-            const { provider, signer, contract } = Ethers();
-            
             if (!contract) {
                 console.log("Ethereum contract not found.");
                 setPaymentStatus("Ethereum environment not found. Install MetaMask and try again.");
@@ -74,10 +78,11 @@ const PayInvoice = ({ address }) => {
             }
 
             console.log("Contract found:", contract);
-            console.log("invoice detail amt: ",invoiceDetails.amount);
-            // Calculate payment amount in wei
-            console.log(typeof(invoiceDetails.amount));
-            // const paymentAmountInWei=ethers.BigNumber.from(invoiceDetails.amount.toString());
+            console.log("Invoice detail amount: ", invoiceDetails.amount);
+
+            // Convert amount from Ether to Wei
+            // const paymentAmountInWei = ethers.utils.parseEther(invoiceDetails.amount.toString());
+            // const paymentAmountInWei = ethers.BigNumber.from(invoiceDetails.amount.toString(), "ether");
             const paymentAmountInWei = ethers.utils.parseUnits(invoiceDetails.amount.toString(), "ether");
             console.log("Payment amount (in Wei):", paymentAmountInWei);
 
@@ -88,8 +93,8 @@ const PayInvoice = ({ address }) => {
             });
 
             console.log("Transaction sent:", tx);
-            
-            // Wait for transaction to be mined
+
+            // Wait for the transaction to be mined
             const receipt = await tx.wait();
             console.log("Transaction receipt received:", receipt);
 
@@ -110,13 +115,11 @@ const PayInvoice = ({ address }) => {
                 setPaymentStatus("Failed to update invoice status.");
             }
 
-            // Redirect to payment confirmation page
-            console.log("Redirecting to payment confirmation page...");
+            // Optionally, redirect to a confirmation page
             // window.location.href = `/paymentConfirmation/${receipt.transactionHash}`;
         } catch (error) {
             console.error("Error during payment:", error);
             setPaymentStatus("Payment failed. Please try again.");
-            console.log("Error details:", error);
         } finally {
             setLoading(false);
             console.log("Payment process completed.");
@@ -126,7 +129,7 @@ const PayInvoice = ({ address }) => {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
             <h2 className="text-2xl font-semibold mb-6">Pay Invoice</h2>
-            
+
             {/* Display Wallet Address */}
             {walletAddress && (
                 <p className="text-lg mb-4">
@@ -134,26 +137,13 @@ const PayInvoice = ({ address }) => {
                 </p>
             )}
 
-            <input
-                type="text"
-                className="w-full max-w-md p-3 rounded-md border border-gray-300"
-                placeholder="Enter Invoice ID"
-                value={invoiceId}
-                onChange={(e) => setInvoiceId(e.target.value)}
-            />
-            <button
-                className="mt-4 bg-blue-500 text-white py-3 px-6 rounded-md"
-                onClick={handleFetchInvoice}
-            >
-                Fetch Invoice
-            </button>
-
-            {invoiceDetails && (
+            {/* Invoice Details */}
+            {invoiceDetails ? (
                 <div className="mt-6 space-y-4">
-                    <p><strong>Amount:</strong> {invoiceDetails.amount} XFI</p>
-                    {/* <p><strong>Amount:</strong> {ethers.utils.formatUnits(invoiceDetails.amount,"ether")} ETH</p> */}
+                    <p><strong>Amount:</strong> {invoiceDetails.amount} ETH</p>
                     <p><strong>Recipient:</strong> {invoiceDetails.issuer}</p>
                     <p><strong>Due Date:</strong> {new Date(invoiceDetails.dueDate).toLocaleString()}</p>
+                    {/* Payment button will be triggered automatically upon loading */}
                     <button
                         className="mt-4 bg-green-500 text-white py-3 px-6 rounded-md"
                         onClick={handlePayment}
@@ -162,12 +152,14 @@ const PayInvoice = ({ address }) => {
                         {loading ? "Processing..." : "Pay Now"}
                     </button>
                 </div>
+            ) : (
+                <p>Loading invoice details...</p>
             )}
 
             {paymentStatus && (
                 <div className="mt-6 text-center text-lg">
                     <p>{paymentStatus}</p>
-                    {console.log("below payment status receipt pdf url: ",receiptUrl)}
+                    {console.log("below payment status receipt pdf url: ", receiptUrl)}
                     {receiptUrl && (
                         <div className="mt-4">
                             <a href={receiptUrl} download>
@@ -183,4 +175,4 @@ const PayInvoice = ({ address }) => {
     );
 };
 
-export default PayInvoice;
+export default PayInvoiceQr;

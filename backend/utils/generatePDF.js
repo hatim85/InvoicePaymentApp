@@ -13,44 +13,59 @@ export const generatePDF = async (data, pdfPath) => {
             doc.pipe(stream);
 
             // Determine document type: Invoice or Receipt
-            const isInvoice = !!data.invoiceId;
-            doc.fontSize(20).text(isInvoice ? "Invoice" : "Receipt", { align: "center" });
+            const isReceipt = !!data.receiptId;
+            doc.fontSize(20).text(isReceipt ? "Receipt" : "Invoice", { align: "center" });
             doc.moveDown(1);
 
             // Add Common Details
-            doc.fontSize(14).text(isInvoice ? `Invoice ID: ${data.invoiceId}` : `Receipt ID: ${data.receiptId}`, { align: "left" });
+            doc.fontSize(14).text(isReceipt ? `Invoice ID: ${data.receiptId}` : `Receipt ID: ${data.invoiceId}`, { align: "left" });
             doc.text(`Issuer: ${data.issuer}`);
             doc.text(`Payer: ${data.payer}`);
             doc.text(`Description: ${data.description}`);
 
-            console.log("amount in wei: ",data.amount)
-            // Convert Amount from Wei to Ether
-            const amountInEther = ethers.utils.formatUnits(data.amount, "ether");
-            doc.text(`Amount: ${amountInEther} XFI`);
+            try {
+                console.log("Raw amount in Ether (as string or number):", data.amount);
+
+                // Convert Ether to Wei if necessary
+                // const amountInWei = ethers.utils.parseUnits(data.amount.toString(), "ether");
+                // console.log("Amount in Wei:", amountInWei.toString());
+
+                // Convert Wei to Ether for display
+                const amountInEther = ethers.utils.formatUnits(data.amount, "ether");
+                doc.text(`Amount: ${amountInEther} XFI`);
+            } catch (err) {
+                console.error("Error converting amount to Ether:", err);
+                doc.text("Error displaying amount in Ether. Check the transaction data.");
+            }
+
+
 
             // Convert Due Date from Unix Timestamp to Normal Date
-            if (isInvoice) {
-                const dueDate = new Date(data.dueDate * 1000); // Convert from seconds to milliseconds
+            if (!isReceipt) {
+                // const dueDate = new Date(data.dueDate * 1000); // Convert from seconds to milliseconds
+                const dueDate = new Date(data.dueDate); // Convert from seconds to milliseconds
                 doc.text(`Due Date: ${dueDate.toLocaleString()}`);
             } else {
                 // Receipt-specific details
-                doc.text(`Payment Date: ${data.datePaid}`);
+                doc.text(`Payment Date: ${new Date(data.datePaid).toLocaleString()}`);
                 doc.text(`Transaction ID: ${data.transactionHash}`);
-                
-                console.log("data amount: ",data.amount)
+
+                console.log("data amount: ", data.amount)
+                const bigno = ethers.BigNumber.from(data.amount.toString());
+                const paidAmountInEther = ethers.utils.formatEther(bigno);
                 // Convert Paid Amount from Wei to Ether
-                const paidAmountInEther = ethers.utils.formatUnits(data.amount, "ether");
+                // const paidAmountInEther = ethers.utils.formatUnits(ethers.BigNumber.from(data.amount), "ether");
                 doc.text(`Paid Amount: ${paidAmountInEther} XFI`);
             }
 
             doc.moveDown(2); // Space before table
 
             // Add Items Table (for Invoice only)
-            if (isInvoice && data.items) {
+            if (!isReceipt && data.items) {
                 // Set table headers
                 doc.fontSize(12).text("Items", { align: "left" });
                 doc.moveDown(0.5);
-                
+
                 // Create table structure
                 const tableTop = doc.y;
                 const itemHeaderWidth = 200;
@@ -83,7 +98,7 @@ export const generatePDF = async (data, pdfPath) => {
             }
 
             // Generate and Embed QR Code for Invoice
-            if (isInvoice && data.qrCodeContent) {
+            if (!isReceipt && data.qrCodeContent) {
                 QRCode.toDataURL(data.qrCodeContent, (err, url) => {
                     if (err) {
                         console.error("Failed to generate QR code:", err);
